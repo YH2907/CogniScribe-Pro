@@ -21,6 +21,18 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('✅ MongoDB connected'))
     .catch(err => console.error('❌ MongoDB error:', err));
 
+// ================= HEALTH CHECK =================
+app.get('/', (req, res) => {
+    res.json({
+        status: 'ok',
+        message: '🚀 Blind Notes API is running!',
+        endpoints: {
+            auth: '/auth/login, /auth/register',
+            notes: '/notes'
+        }
+    });
+});
+
 // ================= AUTH =================
 
 // Register
