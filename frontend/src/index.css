@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f8fafc;
+  --surface: rgba(255, 255, 255, 0.9);
+  --text: #0f172a;
+  --border: rgba(99, 102, 241, 0.2);
+  --accent: #4f46e5;
+}
+
+html.dark {
+  --bg: #030712;
+  --surface: rgba(17, 24, 39, 0.7);
+  --text: #f8fafc;
+  --border: rgba(129, 140, 248, 0.3);
+  --accent: #818cf8;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  @apply antialiased selection:bg-indigo-500/30;
+}
+
+.fancy-glass {
+  background: var(--surface);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border);
+  @apply rounded-[2.5rem] transition-all duration-500;
+}
