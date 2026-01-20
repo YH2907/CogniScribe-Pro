@@ -31,6 +31,7 @@ export default function Register() {
                 speak(data.message || "Registration failed");
             } else {
                 speak("Registration successful. You can now log in.");
+                // Note: If auto-login is added later, dispatch storage event here too
                 setTimeout(() => {
                     navigate("/login", { replace: true });
                 }, 100);

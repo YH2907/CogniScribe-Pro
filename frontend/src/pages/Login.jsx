@@ -33,6 +33,9 @@ export default function Login() {
             // ✅ Save token
             localStorage.setItem("token", data.token);
 
+            // ✅ Dispatch storage event to trigger App component update (same-tab)
+            window.dispatchEvent(new Event("storage"));
+
             // ✅ Speak feedback
             speak("Login successful");
 
