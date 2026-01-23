@@ -34,10 +34,13 @@ export default function NotesPage() {
 
     async function loadNotes() {
         try {
+            console.log("📥 Loading notes...");
             const res = await API.get("/notes");
+            console.log(`✅ Loaded ${res.data.length} notes`);
             setNotes(res.data);
             speak("Workspace loaded.");
-        } catch {
+        } catch (err) {
+            console.error("❌ Error loading notes:", err.response?.data || err.message);
             speak("Error connecting to database.");
         }
     }
@@ -164,11 +167,18 @@ export default function NotesPage() {
                                     speak("Entry is empty.");
                                     return;
                                 }
-                                const res = await API.post("/notes", { text: input });
-                                setNotes([res.data, ...notes]);
-                                setInput("");
-                                transcriptBuffer.current = "";
-                                speak("Notes saved.");
+                                try {
+                                    console.log("📝 Saving note...");
+                                    const res = await API.post("/notes", { text: input });
+                                    console.log("✅ Note saved successfully:", res.data);
+                                    setNotes([res.data, ...notes]);
+                                    setInput("");
+                                    transcriptBuffer.current = "";
+                                    speak("Notes saved.");
+                                } catch (err) {
+                                    console.error("❌ Failed to save note:", err.response?.data || err.message);
+                                    speak("Failed to save note. Please check your connection.");
+                                }
                             }}
                             className="flex-1 py-5 rounded-3xl bg-indigo-600 text-white font-black text-sm tracking-widest shadow-xl shadow-indigo-500/20"
                         >
@@ -231,8 +241,8 @@ export default function NotesPage() {
                                         label="Summarize this note"
                                         onActivate={() => summarizeNote(n._id, n.text)}
                                         className={`flex-1 py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all ${summarizingNotes[n._id]
-                                                ? "bg-pink-500 text-white animate-pulse"
-                                                : "bg-pink-500/10 text-pink-500 hover:bg-pink-500 hover:text-white"
+                                            ? "bg-pink-500 text-white animate-pulse"
+                                            : "bg-pink-500/10 text-pink-500 hover:bg-pink-500 hover:text-white"
                                             }`}
                                     >
                                         {summarizingNotes[n._id] ? "Summarizing..." : "Summarize"}
@@ -241,15 +251,20 @@ export default function NotesPage() {
                                     <BlindButton
                                         label="Delete"
                                         onActivate={async () => {
-                                            await API.delete(`/notes/${n._id}`);
-                                            setNotes(notes.filter(note => note._id !== n._id));
-                                            // Also remove the summary for this note
-                                            setNoteSummaries(prev => {
-                                                const updated = { ...prev };
-                                                delete updated[n._id];
-                                                return updated;
-                                            });
-                                            speak("Notes Deleted");
+                                            try {
+                                                await API.delete(`/notes/${n._id}`);
+                                                setNotes(notes.filter(note => note._id !== n._id));
+                                                // Also remove the summary for this note
+                                                setNoteSummaries(prev => {
+                                                    const updated = { ...prev };
+                                                    delete updated[n._id];
+                                                    return updated;
+                                                });
+                                                speak("Notes Deleted");
+                                            } catch (err) {
+                                                console.error("❌ Error deleting note:", err);
+                                                speak("Failed to delete note.");
+                                            }
                                         }}
                                         className="px-6 py-4 rounded-2xl bg-red-500/5 text-red-500 font-black text-[12px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
                                     >
