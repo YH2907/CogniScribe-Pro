@@ -21,9 +21,27 @@ app.use(cors({
 app.use(express.json());
 
 // ================= DATABASE =================
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('✅ MongoDB connected'))
-    .catch(err => console.error('❌ MongoDB error:', err));
+mongoose.connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+})
+    .then(() => {
+        console.log('✅ MongoDB connected successfully');
+        console.log('   Database:', mongoose.connection.name);
+    })
+    .catch(err => {
+        console.error('❌ MongoDB connection error:', err.message);
+        console.error('   Please check your MONGO_URI in .env file');
+    });
+
+// Monitor connection events
+mongoose.connection.on('disconnected', () => {
+    console.log('⚠️  MongoDB disconnected');
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('❌ MongoDB error:', err.message);
+});
 
 // ================= HEALTH CHECK =================
 app.get('/', (req, res) => {
@@ -90,32 +108,64 @@ app.post('/auth/login', async (req, res) => {
 
 // Get notes
 app.get('/notes', auth, async (req, res) => {
-    const notes = await Note.find({ userId: req.user.id }).sort({ createdAt: -1 });
-    res.json(notes);
+    try {
+        const notes = await Note.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        res.json(notes);
+    } catch (err) {
+        console.error('❌ Error fetching notes:', err);
+        res.status(500).json({ message: 'Failed to fetch notes', error: err.message });
+    }
 });
 
 // Create note
 app.post('/notes', auth, async (req, res) => {
-    const { text } = req.body;
-    const note = new Note({ text, userId: req.user.id });
-    await note.save();
-    res.json(note);
+    try {
+        const { text } = req.body;
+
+        if (!text || text.trim() === '') {
+            return res.status(400).json({ message: 'Note text is required' });
+        }
+
+        const note = new Note({ text, userId: req.user.id });
+        await note.save();
+        console.log('✅ Note saved:', note._id);
+        res.json(note);
+    } catch (err) {
+        console.error('❌ Error saving note:', err);
+        res.status(500).json({ message: 'Failed to save note', error: err.message });
+    }
 });
 
 // Update note
 app.put('/notes/:id', auth, async (req, res) => {
-    const note = await Note.findOneAndUpdate(
-        { _id: req.params.id, userId: req.user.id },
-        { text: req.body.text },
-        { new: true }
-    );
-    res.json(note);
+    try {
+        const note = await Note.findOneAndUpdate(
+            { _id: req.params.id, userId: req.user.id },
+            { text: req.body.text },
+            { new: true }
+        );
+        if (!note) {
+            return res.status(404).json({ message: 'Note not found' });
+        }
+        res.json(note);
+    } catch (err) {
+        console.error('❌ Error updating note:', err);
+        res.status(500).json({ message: 'Failed to update note', error: err.message });
+    }
 });
 
 // Delete note
 app.delete('/notes/:id', auth, async (req, res) => {
-    await Note.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
-    res.json({ message: 'Note deleted' });
+    try {
+        const result = await Note.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+        if (!result) {
+            return res.status(404).json({ message: 'Note not found' });
+        }
+        res.json({ message: 'Note deleted' });
+    } catch (err) {
+        console.error('❌ Error deleting note:', err);
+        res.status(500).json({ message: 'Failed to delete note', error: err.message });
+    }
 });
 
 // ================= GROQ AI SUMMARY =================
